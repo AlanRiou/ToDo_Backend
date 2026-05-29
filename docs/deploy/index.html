@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Despliegue en GCP · HelloWorldQuarkus</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #4285f4;
+    --accent-2: #34a853;
+    --warn: #fbbc05;
+    --danger: #ea4335;
+    --border: #2a2f3a;
+    --code-bg: #0b0d12;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55; }
+  a { color: var(--accent); }
+  header {
+    padding: 28px 24px; border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #1a1f2a 0%, #0f1115 100%);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { margin: 0 0 4px 0; font-size: 22px; }
+  header p  { margin: 0; color: var(--muted); font-size: 14px; }
+  .progress-wrap { margin-top: 12px; background: var(--panel-2); height: 8px;
+    border-radius: 999px; overflow: hidden; }
+  .progress-bar { background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    height: 100%; width: 0%; transition: width .3s ease; }
+  .progress-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  main { max-width: 960px; margin: 0 auto; padding: 24px; }
+
+  .config-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
+  }
+  .config-panel h2 { margin: 0 0 12px 0; font-size: 16px; }
+  .config-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .config-grid label { font-size: 12px; color: var(--muted); display: block; }
+  .config-grid input {
+    width: 100%; background: var(--code-bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+  }
+  .config-grid input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+
+  details.step {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+  }
+  details.step[open] { border-color: #3a4050; }
+  details.step > summary {
+    list-style: none; cursor: pointer; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px; user-select: none;
+  }
+  details.step > summary::-webkit-details-marker { display: none; }
+  .step-num {
+    flex: 0 0 28px; height: 28px; border-radius: 50%;
+    background: var(--panel-2); color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 13px;
+  }
+  details.step.done .step-num { background: var(--accent-2); color: #0a0a0a; }
+  .step-title { flex: 1; font-weight: 600; font-size: 15px; }
+  .step-toggle { color: var(--muted); font-size: 12px; }
+  details.step[open] .step-toggle::before { content: "▾ "; }
+  details.step:not([open]) .step-toggle::before { content: "▸ "; }
+
+  .step-body { padding: 4px 16px 16px 56px; }
+  .step-body p { margin: 8px 0; }
+  .step-body ul, .step-body ol { margin: 8px 0; padding-left: 22px; }
+  .step-body li { margin: 4px 0; }
+
+  .check-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border);
+  }
+  .check-row input[type=checkbox] {
+    width: 16px; height: 16px; accent-color: var(--accent-2);
+  }
+  .check-row label { font-size: 13px; color: var(--muted); }
+
+  pre.code {
+    position: relative; background: var(--code-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 44px 12px 14px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; line-height: 1.5; margin: 10px 0;
+  }
+  pre.code .copy-btn {
+    position: absolute; top: 6px; right: 6px;
+    background: var(--panel-2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 8px; font-size: 11px; cursor: pointer;
+  }
+  pre.code .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+  pre.code .copy-btn.copied { color: var(--accent-2); border-color: var(--accent-2); }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--panel-2);
+    padding: 10px 12px; border-radius: 6px; margin: 12px 0; font-size: 13.5px;
+  }
+  .callout.warn { border-color: var(--warn); }
+  .callout.danger { border-color: var(--danger); }
+  .callout strong { color: var(--text); }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; background: var(--panel-2); color: var(--muted);
+    border: 1px solid var(--border); margin-left: 6px; vertical-align: middle; }
+
+  kbd { background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: inherit; }
+
+  footer { max-width: 960px; margin: 24px auto; padding: 0 24px 40px;
+    color: var(--muted); font-size: 12px; text-align: center; }
+
+  .reset-btn {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+  }
+  .reset-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+  @media (max-width: 640px) {
+    .config-grid { grid-template-columns: 1fr; }
+    .step-body { padding-left: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Despliegue en Google Cloud — HelloWorldQuarkus</h1>
+  <p>Guía interactiva: crea tu cuenta, construye la imagen con Cloud Build y publícala en Artifact Registry. Avance y variables se guardan en tu navegador.</p>
+  <div class="progress-wrap"><div class="progress-bar" id="progress"></div></div>
+  <div class="progress-label"><span id="progress-text">0 / 0 pasos</span> · <button class="reset-btn" id="reset">Reiniciar avance</button></div>
+</header>
+
+<main>
+
+<section class="config-panel">
+  <h2>Tus variables <span class="pill">rellenar una vez</span></h2>
+  <p style="margin-top:0;color:var(--muted);font-size:13px;">
+    Los bloques de código de abajo usan estos valores. Cambia cualquiera y se actualizan en vivo.
+  </p>
+  <div class="config-grid">
+    <div>
+      <label for="v-project">PROJECT_ID</label>
+      <input id="v-project" data-var="PROJECT_ID" placeholder="mi-proyecto-gcp" />
+    </div>
+    <div>
+      <label for="v-region">REGION</label>
+      <input id="v-region" data-var="REGION" value="us-central1" />
+    </div>
+    <div>
+      <label for="v-repo">REPOSITORY (Artifact Registry)</label>
+      <input id="v-repo" data-var="REPOSITORY" value="hello-world-repo" />
+    </div>
+    <div>
+      <label for="v-image">IMAGE</label>
+      <input id="v-image" data-var="IMAGE" value="hello-world" />
+    </div>
+    <div>
+      <label for="v-service">CLOUD_RUN_SERVICE</label>
+      <input id="v-service" data-var="SERVICE" value="hello-world" />
+    </div>
+    <div>
+      <label for="v-db">DB_JDBC_URL (conexión Cloud SQL / externa)</label>
+      <input id="v-db" data-var="DB_JDBC_URL" placeholder="jdbc:mysql:///todogrupo1?cloudSqlInstance=proj:region:instance&socketFactory=com.google.cloud.sql.mysql.SocketFactory" />
+    </div>
+  </div>
+</section>
+
+<!-- STEP 1 -->
+<details class="step" data-step="1">
+  <summary><div class="step-num">1</div><div class="step-title">Crear cuenta en Google Cloud</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <ol>
+      <li>Entra a <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> con tu cuenta Google.</li>
+      <li>Acepta los términos del servicio.</li>
+      <li>Activa la <strong>capa gratuita</strong> / créditos de estudiante. Si usas la cuenta institucional, verifica que tengas permisos de facturación.</li>
+      <li>Crea o vincula una <strong>cuenta de facturación</strong> (requisito incluso para el free tier). Menú <kbd>☰</kbd> → <em>Billing</em>.</li>
+    </ol>
+    <div class="callout warn"><strong>Ojo:</strong> Cloud Run y Artifact Registry requieren facturación activa. El free tier cubre el uso típico del curso, pero apaga los servicios al terminar.</div>
+    <div class="check-row">
+      <input type="checkbox" id="c1" />
+      <label for="c1">Tengo cuenta GCP con billing activa</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 2 -->
+<details class="step" data-step="2">
+  <summary><div class="step-num">2</div><div class="step-title">Crear proyecto y elegir PROJECT_ID</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <ol>
+      <li>Arriba a la izquierda, clic en el selector de proyecto → <em>New project</em>.</li>
+      <li>Nombre sugerido: <code>hello-world-quarkus</code>. El <strong>PROJECT_ID</strong> debe ser único globalmente — anótalo.</li>
+      <li>Vincula la cuenta de facturación al proyecto.</li>
+    </ol>
+    <p>Copia tu <code>PROJECT_ID</code> al panel superior. Todos los siguientes comandos lo usan.</p>
+    <div class="check-row">
+      <input type="checkbox" id="c2" />
+      <label for="c2">Proyecto creado y PROJECT_ID anotado</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 3 -->
+<details class="step" data-step="3">
+  <summary><div class="step-num">3</div><div class="step-title">Habilitar APIs requeridas</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <p><strong>Opción A — UI:</strong> Menú <kbd>☰</kbd> → <em>APIs &amp; Services</em> → <em>Enable APIs</em>. Busca y habilita:</p>
+    <ul>
+      <li>Artifact Registry API</li>
+      <li>Cloud Build API</li>
+      <li>Cloud Run Admin API</li>
+      <li>Secret Manager API</li>
+      <li>Cloud SQL Admin API (si usarás Cloud SQL)</li>
+    </ul>
+    <p><strong>Opción B — Cloud Shell</strong> (arriba a la derecha, icono <kbd>&gt;_</kbd>):</p>
+    <pre class="code" data-tpl="gcloud config set project {{PROJECT_ID}}
+gcloud services enable \
+  artifactregistry.googleapis.com \
+  cloudbuild.googleapis.com \
+  run.googleapis.com \
+  secretmanager.googleapis.com \
+  sqladmin.googleapis.com"></pre>
+    <div class="check-row">
+      <input type="checkbox" id="c3" />
+      <label for="c3">APIs habilitadas</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 4 -->
+<details class="step" data-step="4">
+  <summary><div class="step-num">4</div><div class="step-title">Crear repositorio en Artifact Registry</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <p><strong>UI:</strong> Menú <kbd>☰</kbd> → <em>Artifact Registry</em> → <em>Repositories</em> → <em>Create repository</em>.</p>
+    <ul>
+      <li>Name: <code data-tpl-inline="{{REPOSITORY}}">hello-world-repo</code></li>
+      <li>Format: <strong>Docker</strong></li>
+      <li>Mode: <strong>Standard</strong></li>
+      <li>Region: <code data-tpl-inline="{{REGION}}">us-central1</code></li>
+    </ul>
+    <p><strong>CLI equivalente:</strong></p>
+    <pre class="code" data-tpl="gcloud artifacts repositories create {{REPOSITORY}} \
+  --repository-format=docker \
+  --location={{REGION}} \
+  --description='Imagenes del proyecto HelloWorldQuarkus'"></pre>
+    <div class="check-row">
+      <input type="checkbox" id="c4" />
+      <label for="c4">Repositorio creado</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 5 -->
+<details class="step" data-step="5">
+  <summary><div class="step-num">5</div><div class="step-title">Subir el código (GitHub o Cloud Source Repos)</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <p>Cloud Build necesita acceso al código fuente. Opciones:</p>
+    <ol>
+      <li><strong>Recomendado:</strong> push a un repo de GitHub y conectar Cloud Build.</li>
+      <li><strong>Alternativa local:</strong> enviar directo desde tu máquina con <code>gcloud builds submit</code>.</li>
+    </ol>
+    <p><strong>Push local directo a Cloud Build</strong> (sin conectar GitHub):</p>
+    <pre class="code" data-tpl="gcloud builds submit \
+  --config=cloudbuild.yaml \
+  --substitutions=_REGION={{REGION}},_REPOSITORY={{REPOSITORY}},_IMAGE={{IMAGE}} \
+  ."></pre>
+    <p>El archivo <code>cloudbuild.yaml</code> ya está en la raíz del proyecto — construye la imagen y la sube a Artifact Registry con tags <code>:SHORT_SHA</code> y <code>:latest</code>.</p>
+    <div class="check-row">
+      <input type="checkbox" id="c5" />
+      <label for="c5">Código listo para Cloud Build</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 6 -->
+<details class="step" data-step="6">
+  <summary><div class="step-num">6</div><div class="step-title">Crear Trigger en Cloud Build (auto-build en cada push)</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <p>Si conectaste GitHub, crea un trigger para construir automáticamente:</p>
+    <ol>
+      <li>Menú <kbd>☰</kbd> → <em>Cloud Build</em> → <em>Triggers</em> → <em>Create trigger</em>.</li>
+      <li>Source: conecta tu repo de GitHub (autoriza la app de Google Cloud Build).</li>
+      <li>Event: <em>Push to a branch</em>. Branch regex: <code>^main$</code>.</li>
+      <li>Configuration: <em>Cloud Build configuration file (yaml)</em> → <code>cloudbuild.yaml</code>.</li>
+      <li>Substitution variables (si quieres sobrescribir los defaults):
+        <ul>
+          <li><code>_REGION</code> = <code data-tpl-inline="{{REGION}}">us-central1</code></li>
+          <li><code>_REPOSITORY</code> = <code data-tpl-inline="{{REPOSITORY}}">hello-world-repo</code></li>
+          <li><code>_IMAGE</code> = <code data-tpl-inline="{{IMAGE}}">hello-world</code></li>
+        </ul>
+      </li>
+      <li>Service account: la default de Cloud Build. Asegúrate que tenga rol <code>Artifact Registry Writer</code>.</li>
+    </ol>
+    <pre class="code" data-tpl="# Otorgar permisos a la service account de Cloud Build
+PROJECT_NUMBER=$(gcloud projects describe {{PROJECT_ID}} --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding {{PROJECT_ID}} \
+  --member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
+  --role=roles/artifactregistry.writer"></pre>
+    <div class="check-row">
+      <input type="checkbox" id="c6" />
+      <label for="c6">Trigger funcionando (build verde)</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 7 -->
+<details class="step" data-step="7">
+  <summary><div class="step-num">7</div><div class="step-title">Guardar credenciales Firebase en Secret Manager</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <div class="callout danger"><strong>Nunca</strong> subas el JSON de la cuenta de servicio Firebase al repositorio. Usa Secret Manager.</div>
+    <p><strong>UI:</strong> Menú <kbd>☰</kbd> → <em>Security</em> → <em>Secret Manager</em> → <em>Create secret</em>.</p>
+    <ul>
+      <li>Name: <code>firebase-service-account</code></li>
+      <li>Value: pega el contenido del archivo JSON de Firebase.</li>
+    </ul>
+    <p><strong>CLI:</strong></p>
+    <pre class="code" data-tpl="gcloud secrets create firebase-service-account \
+  --data-file=./ruta/local/firebase-adminsdk.json \
+  --replication-policy=automatic"></pre>
+    <div class="check-row">
+      <input type="checkbox" id="c7" />
+      <label for="c7">Secret creado</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 8 -->
+<details class="step" data-step="8">
+  <summary><div class="step-num">8</div><div class="step-title">Desplegar a Cloud Run con variables de entorno</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <p><strong>UI:</strong> Menú <kbd>☰</kbd> → <em>Cloud Run</em> → <em>Deploy container</em> → <em>Service</em>.</p>
+    <ol>
+      <li>Container image URL: selecciona desde Artifact Registry
+        <br><code data-tpl-inline="{{REGION}}-docker.pkg.dev/{{PROJECT_ID}}/{{REPOSITORY}}/{{IMAGE}}:latest"></code></li>
+      <li>Service name: <code data-tpl-inline="{{SERVICE}}">hello-world</code></li>
+      <li>Region: <code data-tpl-inline="{{REGION}}">us-central1</code></li>
+      <li>Authentication: <em>Allow unauthenticated invocations</em> (para pruebas).</li>
+      <li>Container port: <code>8080</code></li>
+      <li>Pestaña <em>Variables &amp; Secrets</em> → agrega:
+        <ul>
+          <li><code>DB_KIND</code> = <code>mysql</code></li>
+          <li><code>DB_USERNAME</code> = <em>(tu usuario)</em></li>
+          <li><code>DB_PASSWORD</code> = <em>(desde Secret Manager — Reference a secret)</em></li>
+          <li><code>DB_JDBC_URL</code> = <code data-tpl-inline="{{DB_JDBC_URL}}">jdbc:mysql://...</code></li>
+          <li><code>DB_SCHEMA_STRATEGY</code> = <code>update</code></li>
+          <li><code>FIREBASE_SERVICE_ACCOUNT_LOCATION</code> = <code>/secrets/firebase.json</code></li>
+        </ul>
+      </li>
+      <li>Pestaña <em>Variables &amp; Secrets</em> → <em>Mount as volume</em>:
+        <ul>
+          <li>Secret: <code>firebase-service-account</code></li>
+          <li>Mount path: <code>/secrets</code></li>
+          <li>Filename: <code>firebase.json</code></li>
+        </ul>
+      </li>
+      <li>Si usas Cloud SQL: pestaña <em>Connections</em> → añadir la instancia.</li>
+      <li>Clic en <strong>Deploy</strong>. Espera ~1 min. Abre la URL pública.</li>
+    </ol>
+
+    <p><strong>CLI equivalente:</strong></p>
+    <pre class="code" data-tpl="gcloud run deploy {{SERVICE}} \
+  --image={{REGION}}-docker.pkg.dev/{{PROJECT_ID}}/{{REPOSITORY}}/{{IMAGE}}:latest \
+  --region={{REGION}} \
+  --platform=managed \
+  --allow-unauthenticated \
+  --port=8080 \
+  --set-env-vars=DB_KIND=mysql,DB_SCHEMA_STRATEGY=update,FIREBASE_SERVICE_ACCOUNT_LOCATION=/secrets/firebase.json \
+  --set-env-vars=DB_JDBC_URL='{{DB_JDBC_URL}}' \
+  --set-secrets=DB_PASSWORD=db-password:latest \
+  --set-secrets=/secrets/firebase.json=firebase-service-account:latest"></pre>
+    <div class="check-row">
+      <input type="checkbox" id="c8" />
+      <label for="c8">Servicio desplegado y accesible</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 9 -->
+<details class="step" data-step="9">
+  <summary><div class="step-num">9</div><div class="step-title">Verificar y monitorear</div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <ol>
+      <li>Abre la URL del servicio (aparece en la consola de Cloud Run).</li>
+      <li>Revisa logs: <em>Cloud Run</em> → tu servicio → pestaña <em>Logs</em>.</li>
+      <li>Si hay errores de conexión DB: valida <code>DB_JDBC_URL</code> y que la instancia Cloud SQL esté vinculada.</li>
+      <li>Si Firebase falla: confirma que el secret está montado en <code>/secrets/firebase.json</code>.</li>
+    </ol>
+    <p><strong>Probar endpoint desde terminal:</strong></p>
+    <pre class="code" data-tpl="SERVICE_URL=$(gcloud run services describe {{SERVICE}} --region={{REGION}} --format='value(status.url)')
+curl $SERVICE_URL/hello"></pre>
+    <div class="check-row">
+      <input type="checkbox" id="c9" />
+      <label for="c9">Endpoint responde correctamente</label>
+    </div>
+  </div>
+</details>
+
+<!-- STEP 10 -->
+<details class="step" data-step="10">
+  <summary><div class="step-num">10</div><div class="step-title">Apagar recursos al terminar <span class="pill">opcional pero recomendado</span></div><div class="step-toggle"></div></summary>
+  <div class="step-body">
+    <p>Para evitar cargos, elimina los recursos cuando acabes la práctica:</p>
+    <pre class="code" data-tpl="gcloud run services delete {{SERVICE}} --region={{REGION}} --quiet
+gcloud artifacts repositories delete {{REPOSITORY}} --location={{REGION}} --quiet
+# O elimina el proyecto completo:
+gcloud projects delete {{PROJECT_ID}}"></pre>
+    <div class="check-row">
+      <input type="checkbox" id="c10" />
+      <label for="c10">Recursos apagados</label>
+    </div>
+  </div>
+</details>
+
+</main>
+
+<footer>
+  HelloWorldQuarkus · Guía de despliegue · TC3004B
+</footer>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'hwq-deploy-state-v1';
+  const defaults = {
+    PROJECT_ID: 'mi-proyecto-gcp',
+    REGION: 'us-central1',
+    REPOSITORY: 'hello-world-repo',
+    IMAGE: 'hello-world',
+    SERVICE: 'hello-world',
+    DB_JDBC_URL: 'jdbc:mysql:///todogrupo1?cloudSqlInstance=PROJ:REGION:INSTANCE&socketFactory=com.google.cloud.sql.mysql.SocketFactory'
+  };
+
+  function loadState(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveState(s){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  }
+
+  const state = Object.assign({ vars: {}, checks: {}, open: {} }, loadState());
+  state.vars = Object.assign({}, defaults, state.vars || {});
+
+  // Bind inputs
+  document.querySelectorAll('input[data-var]').forEach(inp => {
+    const key = inp.dataset.var;
+    if (state.vars[key] !== undefined && state.vars[key] !== '') inp.value = state.vars[key];
+    inp.addEventListener('input', () => {
+      state.vars[key] = inp.value;
+      saveState(state);
+      renderTemplates();
+    });
+  });
+
+  function currentVars(){
+    const v = {};
+    document.querySelectorAll('input[data-var]').forEach(inp => {
+      v[inp.dataset.var] = (inp.value || defaults[inp.dataset.var] || '').trim();
+    });
+    return v;
+  }
+
+  function interpolate(tpl, v){
+    return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => v[k] !== undefined ? v[k] : ('{{'+k+'}}'));
+  }
+
+  function renderTemplates(){
+    const v = currentVars();
+    // <pre data-tpl="...">
+    document.querySelectorAll('pre.code[data-tpl]').forEach(pre => {
+      const tpl = pre.getAttribute('data-tpl');
+      const text = interpolate(tpl, v);
+      // Keep copy btn intact — rebuild content
+      pre.innerHTML = '';
+      const code = document.createElement('code');
+      code.textContent = text;
+      pre.appendChild(code);
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.type = 'button';
+      btn.textContent = 'copiar';
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.textContent = 'copiado';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 1500);
+        });
+      });
+      pre.appendChild(btn);
+    });
+    // inline <code data-tpl-inline="...">
+    document.querySelectorAll('[data-tpl-inline]').forEach(el => {
+      el.textContent = interpolate(el.getAttribute('data-tpl-inline'), v);
+    });
+  }
+
+  // Checkboxes
+  function updateProgress(){
+    const boxes = document.querySelectorAll('.check-row input[type=checkbox]');
+    const total = boxes.length;
+    let done = 0;
+    boxes.forEach(b => { if (b.checked) done++; });
+    const pct = total === 0 ? 0 : Math.round((done/total)*100);
+    document.getElementById('progress').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = done + ' / ' + total + ' pasos';
+  }
+  function bindChecks(){
+    document.querySelectorAll('.check-row input[type=checkbox]').forEach(cb => {
+      if (state.checks[cb.id]) cb.checked = true;
+      const step = cb.closest('details.step');
+      if (cb.checked && step) step.classList.add('done');
+      cb.addEventListener('change', () => {
+        state.checks[cb.id] = cb.checked;
+        saveState(state);
+        if (step) step.classList.toggle('done', cb.checked);
+        updateProgress();
+      });
+    });
+  }
+  function bindOpen(){
+    document.querySelectorAll('details.step').forEach(d => {
+      const id = d.dataset.step;
+      if (state.open[id]) d.open = true;
+      d.addEventListener('toggle', () => {
+        state.open[id] = d.open;
+        saveState(state);
+      });
+    });
+  }
+
+  document.getElementById('reset').addEventListener('click', () => {
+    if (!confirm('Borrar avance guardado y variables?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  });
+
+  renderTemplates();
+  bindChecks();
+  bindOpen();
+  updateProgress();
+})();
+</script>
+</body>
+</html>
