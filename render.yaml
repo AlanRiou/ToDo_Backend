@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: checkly-backend
+    env: java
+    plan: free
+    buildCommand: ./mvnw -DskipTests package
+    startCommand: java -jar target/quarkus-app/quarkus-run.jar
+    envVars:
+      - key: DB_KIND
+        value: mysql
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_JDBC_URL
+        sync: false
+      - key: DB_SCHEMA_STRATEGY
+        value: validate
+      - key: DB_MIGRATE_AT_START
+        value: "true"
+      - key: DB_BASELINE_ON_MIGRATE
+        value: "true"
+      - key: FIREBASE_SERVICE_ACCOUNT_LOCATION
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: APP_VERSION
+        value: render

@@ -24,7 +24,7 @@ public class TaskListRepositoryImpl implements TaskListRepository, PanacheReposi
 
     @Override
     public List<TaskList> findByUserId(UUID userId) {
-        return find("userId = ?1 order by updatedAt desc", userId)
+        return find("userId = ?1 order by lower(title) asc", userId)
                 .stream()
                 .map(TaskListMapper::toDomain)
                 .toList();
@@ -40,7 +40,7 @@ public class TaskListRepositoryImpl implements TaskListRepository, PanacheReposi
     @Override
     public List<TaskList> search(UUID userId, String query) {
         String likeQuery = "%" + query.toLowerCase() + "%";
-        return find("userId = ?1 and (lower(title) like ?2 or lower(description) like ?2) order by updatedAt desc", userId, likeQuery)
+        return find("userId = ?1 and (lower(title) like ?2 or lower(description) like ?2) order by lower(title) asc", userId, likeQuery)
                 .stream()
                 .map(TaskListMapper::toDomain)
                 .toList();

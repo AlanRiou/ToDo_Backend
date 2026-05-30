@@ -52,7 +52,7 @@ public class TodoRepositoryImpl implements TodoRepository, PanacheRepositoryBase
     @Override
     public List<Todo> search(UUID userId, String query) {
         String likeQuery = "%" + query.toLowerCase() + "%";
-        return find("userId = ?1 and (lower(title) like ?2 or lower(description) like ?2) order by updatedAt desc", userId, likeQuery)
+        return find("userId = ?1 and (lower(title) like ?2 or lower(description) like ?2) order by lower(title) asc", userId, likeQuery)
                 .stream()
                 .map(TodoMapper::toDomain)
                 .toList();

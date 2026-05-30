@@ -23,10 +23,6 @@ public class MockFirebaseAuthFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String path = requestContext.getUriInfo().getPath();
-        if (path.equals("/user")) {
-            return;
-        }
-
         String authHeader = requestContext.getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             requestContext.abortWith(Response.status(401).build());

@@ -22,6 +22,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Path("/task-lists")
@@ -81,7 +82,7 @@ public class TaskListResource {
         TaskList taskList = findOwnedList(id);
         todoRepository.deleteByTaskListId(id);
         taskListRepository.delete(taskList);
-        return Response.noContent().build();
+        return Response.ok(Map.of("deleted", true)).build();
     }
 
     @GET

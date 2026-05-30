@@ -61,7 +61,8 @@ class TaskListResourceTest {
         .when()
                 .delete("/task-lists/" + taskListId)
         .then()
-                .statusCode(204);
+                .statusCode(200)
+                .body("deleted", equalTo(true));
     }
 
     @Test

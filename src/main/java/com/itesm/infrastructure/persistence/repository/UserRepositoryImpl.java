@@ -19,6 +19,11 @@ public class UserRepositoryImpl implements UserRepository, PanacheRepositoryBase
     }
 
     @Override
+    public Optional<User> findUserById(UUID id) {
+        return findByIdOptional(id).map(this::mapToDomain);
+    }
+
+    @Override
     @Transactional
     public User create(User user) {
         UserEntity userEntity = UserMapper.toEntity(user);
@@ -26,6 +31,19 @@ public class UserRepositoryImpl implements UserRepository, PanacheRepositoryBase
         userEntity.setUpdatedAt(LocalDateTime.now());
         persist(userEntity);
         return UserMapper.toDomain(userEntity) ;
+    }
+
+    @Override
+    @Transactional
+    public User update(User user) {
+        UserEntity userEntity = findByIdOptional(user.getId()).orElseThrow();
+        userEntity.setFullName(user.getFullName());
+        userEntity.setEmail(user.getEmail());
+        userEntity.setActive(user.isActive());
+        userEntity.setFirebaseUuid(user.getFirebaseUuid());
+        userEntity.setRole(user.getRole());
+        userEntity.setUpdatedAt(LocalDateTime.now());
+        return UserMapper.toDomain(userEntity);
     }
 
     private User mapToDomain(UserEntity userEntity) {

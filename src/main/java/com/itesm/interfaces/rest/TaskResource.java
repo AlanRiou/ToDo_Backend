@@ -18,6 +18,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Path("/tasks")
@@ -55,7 +56,7 @@ public class TaskResource {
     @Path("/{id}")
     public Response delete(@PathParam("id") UUID id) {
         todoRepository.delete(findOwnedTask(id));
-        return Response.noContent().build();
+        return Response.ok(Map.of("deleted", true)).build();
     }
 
     private Todo findOwnedTask(UUID id) {

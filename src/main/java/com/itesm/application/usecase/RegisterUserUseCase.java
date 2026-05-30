@@ -1,8 +1,7 @@
 package com.itesm.application.usecase;
 
-import com.google.firebase.auth.FirebaseAuthException;
 import com.itesm.application.dto.RegisterUserDto;
-import com.itesm.application.security.FirebaseAuthService;
+import com.itesm.application.security.AuthenticatedUserContext;
 import com.itesm.domain.models.User;
 import com.itesm.domain.repository.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,33 +16,27 @@ public class RegisterUserUseCase {
     private UserRepository userRepository;
 
     @Inject
-    private FirebaseAuthService firebaseAuthService;
+    private AuthenticatedUserContext authenticatedUserContext;
 
-    public RegisterUserUseCase(UserRepository userRepository, FirebaseAuthService firebaseAuthService) {
+    public RegisterUserUseCase(UserRepository userRepository, AuthenticatedUserContext authenticatedUserContext) {
         this.userRepository = userRepository;
-        this.firebaseAuthService = firebaseAuthService;
+        this.authenticatedUserContext = authenticatedUserContext;
     }
 
-    public User execute(RegisterUserDto registerUserDto) throws FirebaseAuthException {
-        String firebaseUuid = firebaseAuthService.createUser(
-                registerUserDto.getEmail(),
-                registerUserDto.getPassword()
-        );
+    public User execute(RegisterUserDto registerUserDto) {
+        var currentUser = authenticatedUserContext.getCurrentUser();
+        return userRepository.findByFirebaseUuid(currentUser.getFirebaseUuid()).orElseGet(() -> createUser(registerUserDto));
+    }
 
+    private User createUser(RegisterUserDto registerUserDto) {
+        var currentUser = authenticatedUserContext.getCurrentUser();
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setActive(true);
         user.setFullName(registerUserDto.getFullName());
         user.setEmail(registerUserDto.getEmail());
-        user.setFirebaseUuid(firebaseUuid);
+        user.setFirebaseUuid(currentUser.getFirebaseUuid());
         user.setRole("USER");
-
-        try {
-            return userRepository.create(user);
-        } catch (RuntimeException e) {
-            firebaseAuthService.deleteUser(firebaseUuid);
-            throw e;
-        }
-
+        return userRepository.create(user);
     }
 }

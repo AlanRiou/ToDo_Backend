@@ -27,8 +27,9 @@ class UserResourceTest {
         User mockUser = new User(userId, null, "Juan Perez", "juan@test.com", true, "fb-123", "USER");
 
         given()
+            .header("Authorization", "Bearer test-token")
             .contentType("application/json")
-            .body("{\"email\":\"juan@test.com\",\"password\":\"123456\",\"fullName\":\"Juan Perez\"}")
+            .body("{\"email\":\"juan@test.com\",\"fullName\":\"Juan Perez\"}")
         .when()
             .post("/user")
         .then()

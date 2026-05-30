@@ -1,6 +1,5 @@
 package com.itesm.interfaces.rest;
 
-import com.google.firebase.auth.FirebaseAuthException;
 import com.itesm.application.dto.RegisterUserDto;
 import com.itesm.application.usecase.RegisterUserUseCase;
 import com.itesm.domain.models.User;
@@ -28,12 +27,7 @@ public class UserResource {
 
     @POST
     public Response registerUser(@Valid RegisterUserDto registerUserDto) {
-        try {
-            User user= registerUserUseCase.execute(registerUserDto);
-            return Response.ok(user).build();
-        } catch (FirebaseAuthException e) {
-            e.printStackTrace();
-            return Response.serverError().build();
-        }
+        User user= registerUserUseCase.execute(registerUserDto);
+        return Response.ok(user).build();
     }
 }

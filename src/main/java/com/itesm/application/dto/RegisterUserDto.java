@@ -8,9 +8,6 @@ public class RegisterUserDto {
     @Email(message = "El email debe tener un formato valido")
     private String email;
 
-    @NotBlank(message = "El password es obligatorio")
-    private String password;
-
     @NotBlank(message = "El nombre completo es obligatorio")
     private String fullName;
 
@@ -20,14 +17,6 @@ public class RegisterUserDto {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     public String getFullName() {

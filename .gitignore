@@ -42,10 +42,14 @@ nb-configuration.xml
 !.env.example
 
 # Firebase / Google service account keys
+secrets/
 *firebase-adminsdk*.json
 firebase-service-account.json
 service-account*.json
 google-services.json
+
+# Test / coverage output
+coverage/
 
 # Plugin directory
 /.quarkus/cli/plugins/

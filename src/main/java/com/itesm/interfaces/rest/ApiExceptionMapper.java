@@ -14,16 +14,16 @@ public class ApiExceptionMapper implements ExceptionMapper<Exception> {
     public Response toResponse(Exception exception) {
         if (exception instanceof NotFoundException) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("message", "Resource not found"))
+                    .entity(Map.of("message", "We could not find this item."))
                     .build();
         }
         if (exception instanceof ConstraintViolationException) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("message", "Invalid request"))
+                    .entity(Map.of("message", "Review the information you entered."))
                     .build();
         }
         return Response.serverError()
-                .entity(Map.of("message", "Unexpected server error"))
+                .entity(Map.of("message", "We could not complete the action. Try again."))
                 .build();
     }
 }
