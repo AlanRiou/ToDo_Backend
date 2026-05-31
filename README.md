@@ -1,197 +1,94 @@
-# Checkly
+# Checkly Backend
 
-Checkly es una aplicacion movil de gestion de tareas construida con Expo, React Native y un backend propio en Quarkus. La app organiza tareas por listas, muestra prioridades del dia, permite navegar a detalles, crear/editar listas, crear/editar tareas, buscar elementos y administrar el perfil del usuario.
-
-Este README se mantiene como copia principal del proyecto y tambien se replica en `Frontend/README.md` y `Backend/README.md` para que la informacion este disponible desde cualquier carpeta.
+Backend Quarkus para Checkly. Expone una API REST protegida con Firebase ID Token, persiste datos en MySQL y usa Flyway para versionar el esquema.
 
 ## Estado Actual
 
-### Frontend
-
-- App Expo/React Native con Expo Router.
-- Marca visual actual: `Checkly`.
-- Flujo mock navegable listo para Expo Go:
-  - Login.
-  - Registro.
-  - Dashboard.
-  - Search.
-  - Detalle de lista.
-  - New List.
-  - New/Edit Task.
-  - Perfil.
-  - Pantallas para cambiar nombre, correo y password.
-- Componentes reutilizables creados para pantallas y Storybook:
-  - `BrandHeader`, `BottomNav`, `ProfileAvatar`.
-  - `TaskProgressCard`, `TaskRow`, `CourseHeroCard`.
-  - `AuthTextField`, `Button`, `IconButton`.
-  - `ConfirmDialog`, estados, notices y controles.
-- Storybook web configurado para revisar componentes.
-- Storybook native/on-device disponible para Expo.
-- La logica real de API/Firebase todavia esta pendiente de conectarse en pantallas.
-
-### Backend
-
-- Backend Quarkus 3 con Java 21.
-- Persistencia con MySQL y Hibernate/Panache.
-- Firebase Admin SDK para registro/validacion de usuarios.
-- Dominio base:
-  - `User`.
-  - `TaskList`.
-  - `Todo`/`Task`.
-- API REST para:
-  - usuario actual.
-  - registro.
-  - listas.
-  - tareas.
-  - busqueda.
-  - status.
-- Filtros de autenticacion Firebase y contexto de usuario.
-- Pendiente principal: conectar frontend real contra estos endpoints y preparar despliegue final.
-
-## Tecnologias
-
-### Frontend
-
-- Expo 54.
-- React Native.
-- Expo Router.
-- TypeScript.
-- NativeWind.
-- Gluestack UI.
-- Lucide React Native.
-- Storybook.
-- Axios.
-- Firebase Client SDK.
-
-### Backend
-
-- Java 21.
-- Quarkus 3.34.3.
-- Quarkus REST con Jackson.
-- Maven Wrapper.
-- MySQL.
-- Conector opcional para Google Cloud SQL MySQL.
-- H2 para tests.
-- Firebase Admin SDK.
-- Docker.
-
-## Estructura
-
-```text
-ToDoFinal/
-|-- Frontend/
-|   |-- app/                  # Rutas Expo Router
-|   |-- components/           # Componentes reutilizables
-|   |-- constants/            # Tokens visuales y tipografia
-|   |-- context/              # Contextos de app/auth
-|   |-- lib/                  # Configuracion Firebase/API
-|   |-- services/             # Servicios HTTP planeados
-|   |-- stories/              # Stories de Storybook
-|   |-- package.json
-|
-|-- Backend/
-|   |-- src/main/java/com/itesm/
-|   |   |-- application/      # DTOs, seguridad y casos de uso
-|   |   |-- domain/           # Modelos y repositorios
-|   |   |-- infrastructure/   # Firebase, JPA y persistencia
-|   |   |-- interfaces/rest/  # Recursos REST
-|   |-- src/main/resources/
-|   |-- src/test/
-|   |-- Dockerfile
-|   |-- pom.xml
-|
-|-- README.md
-```
+- Quarkus 3.34 con Java 21.
+- Firebase Admin SDK para verificar tokens.
+- `/status` publico.
+- Endpoints protegidos por `Authorization: Bearer <firebase-id-token>`.
+- `POST /user` sincroniza el perfil backend usando el usuario autenticado en Firebase.
+- `GET /me` y `PUT /me` para perfil.
+- CRUD de task lists.
+- CRUD de tasks/todos.
+- Busqueda de listas y tareas.
+- Ownership por usuario autenticado.
+- MySQL con Flyway.
+- Tests con H2 y filtros mock.
+- Configuracion para Render en `render.yaml`.
 
 ## Requisitos
 
-- Node.js y npm.
-- Expo Go en dispositivo movil, o emulador Android/iOS.
 - Java 21.
 - MySQL 8.
-- Proyecto Firebase con Authentication habilitado.
-- Llave JSON de Firebase Admin SDK para el backend.
+- Maven Wrapper incluido.
+- Proyecto Firebase.
+- Service account JSON de Firebase Admin SDK.
 
-## Frontend: Instalacion y Uso
+## Base de Datos
 
-Desde la raiz:
-
-```bash
-cd Frontend
-npm install
-```
-
-Iniciar Expo:
-
-```bash
-npm run start
-```
-
-Abrir en Expo Go escaneando el QR.
-
-Otros comandos:
-
-```bash
-npm run android
-npm run ios
-npm run web
-npm run lint
-```
-
-Storybook web:
-
-```bash
-npm run storybook
-```
-
-Storybook on-device con Expo:
-
-```bash
-npm run storybook:native
-```
-
-Validacion TypeScript:
-
-```bash
-node .\node_modules\typescript\bin\tsc --noEmit
-```
-
-## Backend: Configuracion
-
-Crear base de datos MySQL:
+Crear base vacia:
 
 ```sql
-CREATE DATABASE todogrupo1 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE checkly CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Entrar al backend:
+Flyway ejecuta las migraciones al iniciar:
+
+```text
+src/main/resources/db/migration/
+|-- V1__create_checkly_schema.sql
+|-- V2__add_user_preferred_language.sql
+```
+
+Tablas actuales:
+
+- `users`
+- `task_lists`
+- `todos`
+- `flyway_schema_history`
+
+Relaciones:
+
+- `users -> task_lists`
+- `users -> todos`
+- `task_lists -> todos`
+
+`due_date` guarda fecha y hora de vencimiento en un solo `DATETIME(6)`.
+
+## Variables de Entorno
+
+Copia el ejemplo:
 
 ```bash
-cd Backend
+copy .env.example .env
 ```
 
-Crear `.env` desde el ejemplo:
-
-```bash
-cp .env.example .env
-```
-
-Variables esperadas:
+Variables:
 
 ```env
 DB_KIND=mysql
 DB_USERNAME=root
-DB_PASSWORD=your-mysql-password
-DB_JDBC_URL=jdbc:mysql://localhost:3306/todogrupo1
-DB_SCHEMA_STRATEGY=update
+DB_PASSWORD=change-me
+DB_JDBC_URL=jdbc:mysql://localhost:3306/checkly
+DB_SCHEMA_STRATEGY=validate
+DB_MIGRATE_AT_START=true
+DB_BASELINE_ON_MIGRATE=true
 FIREBASE_SERVICE_ACCOUNT_LOCATION=C:/secure-path/firebase-service-account.json
 APP_VERSION=dev
 PORT=8080
 ```
 
-La llave de Firebase Admin SDK no debe subirse al repositorio.
+Opcional para CORS:
 
-## Backend: Ejecutar
+```env
+CORS_ORIGINS=*
+```
+
+No subas `.env`, carpetas `secrets/` ni archivos JSON de service account.
+
+## Ejecutar en Desarrollo
 
 Windows:
 
@@ -205,18 +102,19 @@ Linux/macOS:
 ./mvnw quarkus:dev
 ```
 
-La API corre por defecto en:
+La API escucha en:
 
 ```text
 http://localhost:8080
 ```
 
-Build:
+Status:
 
 ```bash
-mvnw.cmd package -DskipTests
-java -jar target/quarkus-app/quarkus-run.jar
+curl http://localhost:8080/status
 ```
+
+## Build y Tests
 
 Tests:
 
@@ -224,88 +122,144 @@ Tests:
 mvnw.cmd test
 ```
 
-## Endpoints Principales
+Build JVM:
 
-| Metodo | Endpoint | Descripcion |
-| --- | --- | --- |
-| `GET` | `/status` | Estado de la API |
-| `POST` | `/user` | Registro backend despues de crear/registrar usuario |
-| `GET` | `/me` | Usuario autenticado |
-| `GET` | `/task-lists` | Listar listas del usuario |
-| `POST` | `/task-lists` | Crear lista |
-| `GET` | `/task-lists/{id}` | Obtener detalle de lista |
-| `PUT` | `/task-lists/{id}` | Actualizar lista |
-| `DELETE` | `/task-lists/{id}` | Eliminar lista |
-| `GET` | `/task-lists/{id}/tasks` | Listar tareas de una lista |
-| `POST` | `/task-lists/{id}/tasks` | Crear tarea en lista |
-| `GET` | `/tasks/{id}` | Obtener tarea |
-| `PUT` | `/tasks/{id}` | Actualizar tarea |
-| `DELETE` | `/tasks/{id}` | Eliminar tarea |
-| `GET` | `/search?q=...` | Buscar listas/tareas |
+```bash
+mvnw.cmd package -DskipTests
+```
 
-Los endpoints protegidos esperan:
+Ejecutar jar:
+
+```bash
+java -jar target/quarkus-app/quarkus-run.jar
+```
+
+## Endpoints
+
+Todos excepto `/status` requieren:
 
 ```http
 Authorization: Bearer <firebase-id-token>
 ```
 
-## Flujo Frontend Actual
+| Metodo | Endpoint | Descripcion |
+| --- | --- | --- |
+| `GET` | `/status` | Estado de API |
+| `POST` | `/user` | Crea/sincroniza perfil backend |
+| `GET` | `/me` | Perfil autenticado |
+| `PUT` | `/me` | Actualiza perfil: `fullName`, `email`, `preferredLanguage` |
+| `GET` | `/task-lists` | Lista task lists del usuario |
+| `POST` | `/task-lists` | Crea task list |
+| `GET` | `/task-lists/{id}` | Obtiene task list |
+| `PUT` | `/task-lists/{id}` | Actualiza task list |
+| `DELETE` | `/task-lists/{id}` | Elimina task list y tareas |
+| `GET` | `/task-lists/{id}/tasks` | Lista tareas de una task list |
+| `POST` | `/task-lists/{id}/tasks` | Crea tarea |
+| `GET` | `/tasks/{id}` | Obtiene tarea |
+| `PUT` | `/tasks/{id}` | Actualiza tarea |
+| `DELETE` | `/tasks/{id}` | Elimina tarea |
+| `GET` | `/search?q=...` | Busca listas y tareas del usuario |
 
-1. La app inicia en login.
-2. `Login` redirige al dashboard mock.
-3. `Create Account` abre registro.
-4. En dashboard se muestran listas mock y tareas del dia.
-5. Al tocar una lista se abre el detalle.
-6. En detalle, `Lists` regresa al dashboard.
-7. Los tres puntos de una tarea abren opciones superpuestas:
-   - Edit Task.
-   - Delete Task.
-8. Delete Task abre confirmacion modal.
-9. El avatar abre perfil.
-10. En perfil se puede navegar a pantallas de cambio de nombre, correo y password.
-11. Logout regresa al login.
+Existe tambien un recurso legacy `/todo` usado por pruebas antiguas; la app actual no depende de el.
 
-## Pendientes Antes de Entrega
+## Payloads Principales
 
-- Conectar Firebase Authentication real en login/register.
-- Guardar sesion y token Firebase.
-- Conectar Axios con `EXPO_PUBLIC_API_URL`.
-- Enviar `Authorization: Bearer <token>` desde interceptor.
-- Reemplazar mocks por llamadas reales:
-  - listas.
-  - tareas.
-  - busqueda.
-  - perfil.
-- Conectar cambios de cuenta con Firebase/backend.
-- Desplegar backend en Render/Railway/Fly.io.
-- Probar app apuntando al backend desplegado.
-- Revisar que no existan secretos locales versionados.
+### `POST /user`
 
-## Comandos de Verificacion Usados
-
-Frontend:
-
-```bash
-node .\node_modules\typescript\bin\tsc --noEmit
+```json
+{
+  "fullName": "Alex Gonzalez",
+  "email": "alex@example.com"
+}
 ```
 
-Storybook:
+El `firebaseUuid` se toma del token, no del body.
 
-```bash
-npm run storybook
-npm run storybook:native
+### `PUT /me`
+
+```json
+{
+  "fullName": "Alex Gonzalez",
+  "email": "alex@example.com",
+  "preferredLanguage": "es"
+}
 ```
 
-Backend:
+### `POST /task-lists`
 
-```bash
-mvnw.cmd test
-mvnw.cmd package -DskipTests
+```json
+{
+  "title": "Work",
+  "description": "Tasks and priorities",
+  "accentColor": "#0B72E7",
+  "icon": "book"
+}
 ```
 
-## Notas de Seguridad
+### `POST /task-lists/{id}/tasks`
 
-- No subir `.env`.
-- No subir service accounts de Firebase.
-- No guardar passwords reales en mocks.
-- En produccion, usar variables de entorno o secretos del proveedor de deploy.
+```json
+{
+  "title": "Prepare report",
+  "description": "Send first draft",
+  "priority": "medium",
+  "dueDate": "2026-05-31T18:30:00.000Z",
+  "completed": false
+}
+```
+
+## Errores
+
+El backend responde errores con `message` para que el frontend muestre mensajes amigables. Casos esperados:
+
+- `401`: sesion expirada o token invalido.
+- `403`: accion no permitida.
+- `404`: recurso no encontrado o no pertenece al usuario.
+- `400`: validacion invalida.
+- `500`: error inesperado.
+
+## Seguridad
+
+- El backend no almacena passwords.
+- Firebase Authentication gestiona credenciales.
+- El backend verifica tokens con Firebase Admin SDK.
+- Cada query de listas/tareas se limita al usuario autenticado.
+- Las task lists eliminan sus tareas por cascade.
+
+## Deploy en Render
+
+El archivo `render.yaml` contiene una configuracion base:
+
+```yaml
+buildCommand: ./mvnw -DskipTests package
+startCommand: java -jar target/quarkus-app/quarkus-run.jar
+```
+
+Variables recomendadas:
+
+- `DB_KIND=mysql`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `DB_JDBC_URL`
+- `DB_SCHEMA_STRATEGY=validate`
+- `DB_MIGRATE_AT_START=true`
+- `DB_BASELINE_ON_MIGRATE=true`
+- `FIREBASE_SERVICE_ACCOUNT_LOCATION`
+- `CORS_ORIGINS`
+- `APP_VERSION=render`
+- `PORT`
+
+Para Firebase Admin SDK en produccion, monta el JSON como secret/archivo y apunta `FIREBASE_SERVICE_ACCOUNT_LOCATION` a esa ruta.
+
+## Notas de Migraciones
+
+- No edites migraciones ya aplicadas en bases compartidas o de produccion.
+- En desarrollo local, si decides borrar la base, Flyway volvera a aplicar desde `V1`.
+- Para cambios nuevos de esquema, agrega una nueva migracion `V{n}__descripcion.sql`.
+
+## Troubleshooting
+
+- Si MySQL no esta en PATH, puedes usar Workbench, DBeaver o la ruta completa a `mysql.exe`; Quarkus no necesita que el cliente `mysql` este en PATH.
+- Si Flyway dice `Schema is up to date`, las migraciones ya fueron aplicadas.
+- Si Firebase no inicializa, revisa `FIREBASE_SERVICE_ACCOUNT_LOCATION`.
+- Si Expo Go no conecta, revisa CORS y que el frontend apunte a la IP LAN correcta.

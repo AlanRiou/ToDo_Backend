@@ -8,6 +8,7 @@ public class User {
     private boolean active;
     private String firebaseUuid;
     private String role;
+    private String preferredLanguage;
     public User() {}
     public User(UUID id, String username, String fullName, String email, boolean active, String firebaseUuid, String role) {
         this.id = id;
@@ -16,6 +17,7 @@ public class User {
         this.active = active;
         this.firebaseUuid = firebaseUuid;
         this.role=role;
+        this.preferredLanguage = "en";
     }
 
     public UUID getId() {
@@ -64,5 +66,13 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
+    public void setPreferredLanguage(String preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
     }
 }

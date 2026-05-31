@@ -13,6 +13,7 @@ public class UserMapper {
         userEntity.setFirebaseUuid(user.getFirebaseUuid());
         userEntity.setFullName(user.getFullName());
         userEntity.setRole(user.getRole());
+        userEntity.setPreferredLanguage(user.getPreferredLanguage() == null ? "en" : user.getPreferredLanguage());
         return userEntity;
     }
     public static User toDomain(UserEntity userEntity) {
@@ -23,6 +24,7 @@ public class UserMapper {
         user.setFirebaseUuid(userEntity.getFirebaseUuid());
         user.setFullName(userEntity.getFullName());
         user.setRole(userEntity.getRole());
+        user.setPreferredLanguage(userEntity.getPreferredLanguage() == null ? "en" : userEntity.getPreferredLanguage());
         return user;
     }
 }

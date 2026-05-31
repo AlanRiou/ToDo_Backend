@@ -29,13 +29,15 @@ public class MeResource {
 
     @GET
     public Response me() {
-        var user = authenticatedUserContext.getCurrentUser();
+        var currentUser = authenticatedUserContext.getCurrentUser();
+        User user = userRepository.findUserById(currentUser.getUserId()).orElseThrow(NotFoundException::new);
         return Response.ok(Map.of(
-                "id", user.getUserId(),
+                "id", user.getId(),
                 "firebaseUuid", user.getFirebaseUuid(),
                 "email", user.getEmail(),
                 "fullName", user.getFullName(),
-                "role", user.getRole()
+                "role", user.getRole(),
+                "preferredLanguage", normalizedLanguage(user.getPreferredLanguage())
         )).build();
     }
 
@@ -49,13 +51,24 @@ public class MeResource {
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
             user.setEmail(request.getEmail().trim());
         }
+        if (request.getPreferredLanguage() != null && !request.getPreferredLanguage().isBlank()) {
+            user.setPreferredLanguage(normalizedLanguage(request.getPreferredLanguage()));
+        }
         User updated = userRepository.update(user);
         return Response.ok(Map.of(
                 "id", updated.getId(),
                 "firebaseUuid", updated.getFirebaseUuid(),
                 "email", updated.getEmail(),
                 "fullName", updated.getFullName(),
-                "role", updated.getRole()
+                "role", updated.getRole(),
+                "preferredLanguage", normalizedLanguage(updated.getPreferredLanguage())
         )).build();
+    }
+
+    private String normalizedLanguage(String language) {
+        if ("es".equalsIgnoreCase(language)) {
+            return "es";
+        }
+        return "en";
     }
 }

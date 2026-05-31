@@ -7,6 +7,7 @@ public class UpdateProfileDto {
 
     @Email(message = "El email debe tener un formato valido")
     private String email;
+    private String preferredLanguage;
 
     public String getFullName() {
         return fullName;
@@ -22,5 +23,13 @@ public class UpdateProfileDto {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
+    public void setPreferredLanguage(String preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
     }
 }

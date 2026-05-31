@@ -27,6 +27,8 @@ public class UserEntity {
     private LocalDateTime updatedAt;
     @Column
     private String role;
+    @Column(nullable = false, length = 15, name="preferred_language")
+    private String preferredLanguage = "en";
     public UserEntity(){
 
     }
@@ -39,6 +41,7 @@ public class UserEntity {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.role = role;
+        this.preferredLanguage = "en";
     }
 
     public UUID getId() {
@@ -103,5 +106,13 @@ public class UserEntity {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
+    public void setPreferredLanguage(String preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
     }
 }

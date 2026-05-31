@@ -1,6 +1,7 @@
 package com.itesm.interfaces.rest;
 
 import com.itesm.application.security.AuthenticatedUserContext;
+import com.itesm.domain.models.TaskList;
 import com.itesm.domain.repository.TaskListRepository;
 import com.itesm.domain.repository.TodoRepository;
 import jakarta.inject.Inject;
@@ -31,11 +32,17 @@ public class SearchResource {
         String normalizedQuery = query == null ? "" : query.trim();
         UUID userId = authenticatedUserContext.getCurrentUser().getUserId();
         if (normalizedQuery.isBlank()) {
-            return Response.ok(Map.of("taskLists", taskListRepository.findByUserId(userId), "tasks", todoRepository.search(userId, ""))).build();
+            return Response.ok(Map.of("taskLists", taskListRepository.findByUserId(userId).stream().map(this::withCounts).toList(), "tasks", todoRepository.search(userId, ""))).build();
         }
         return Response.ok(Map.of(
-                "taskLists", taskListRepository.search(userId, normalizedQuery),
+                "taskLists", taskListRepository.search(userId, normalizedQuery).stream().map(this::withCounts).toList(),
                 "tasks", todoRepository.search(userId, normalizedQuery)
         )).build();
+    }
+
+    private TaskList withCounts(TaskList taskList) {
+        taskList.setTotalTasks(todoRepository.countByTaskListId(taskList.getId()));
+        taskList.setCompletedTasks(todoRepository.countCompletedByTaskListId(taskList.getId()));
+        return taskList;
     }
 }

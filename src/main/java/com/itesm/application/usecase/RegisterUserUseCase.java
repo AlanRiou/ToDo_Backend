@@ -37,6 +37,7 @@ public class RegisterUserUseCase {
         user.setEmail(registerUserDto.getEmail());
         user.setFirebaseUuid(currentUser.getFirebaseUuid());
         user.setRole("USER");
+        user.setPreferredLanguage("en");
         return userRepository.create(user);
     }
 }

@@ -42,6 +42,7 @@ public class UserRepositoryImpl implements UserRepository, PanacheRepositoryBase
         userEntity.setActive(user.isActive());
         userEntity.setFirebaseUuid(user.getFirebaseUuid());
         userEntity.setRole(user.getRole());
+        userEntity.setPreferredLanguage(user.getPreferredLanguage() == null ? "en" : user.getPreferredLanguage());
         userEntity.setUpdatedAt(LocalDateTime.now());
         return UserMapper.toDomain(userEntity);
     }
