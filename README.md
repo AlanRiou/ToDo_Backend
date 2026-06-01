@@ -134,6 +134,14 @@ Ejecutar jar:
 java -jar target/quarkus-app/quarkus-run.jar
 ```
 
+## Despliegue En Google Cloud
+
+La guia paso a paso para Cloud Run, Cloud SQL, Secret Manager y Artifact Registry esta en:
+
+```text
+docs/deploy/google-cloud-run.md
+```
+
 ## Endpoints
 
 Todos excepto `/status` requieren:
