@@ -1,34 +1,82 @@
-# Checkly Backend
+# Checkly - Backend API
 
-Backend Quarkus para Checkly. Expone una API REST protegida con Firebase ID Token, persiste datos en MySQL y usa Flyway para versionar el esquema.
+Checkly es una aplicacion movil para gestionar listas de tareas, tareas pendientes, prioridades y busqueda de actividades por usuario. El sistema usa Firebase Authentication para autenticar usuarios, un backend Quarkus para exponer la API REST, MySQL para persistencia y Google Cloud Run para el despliegue publico del backend.
 
-## Estado Actual
+Este repositorio contiene el backend de Checkly. La API valida Firebase ID Tokens como JWT, protege los recursos por usuario autenticado y expone endpoints para perfil, listas, tareas y busqueda. Los datos se persisten en MySQL y el esquema se versiona con Flyway.
 
-- Quarkus 3.34 con Java 21.
-- Firebase Admin SDK para verificar tokens.
-- `/status` publico.
-- Endpoints protegidos por `Authorization: Bearer <firebase-id-token>`.
-- `POST /user` sincroniza el perfil backend usando el usuario autenticado en Firebase.
-- `GET /me` y `PUT /me` para perfil.
-- CRUD de task lists.
-- CRUD de tasks/todos.
-- Busqueda de listas y tareas.
-- Ownership por usuario autenticado.
-- MySQL con Flyway.
-- Tests con H2 y filtros mock.
-- Configuracion para Render en `render.yaml`.
+## Tecnologias Utilizadas
 
-## Requisitos
+- Java 21
+- Quarkus 3.34
+- RESTEasy Reactive / Jackson
+- Hibernate ORM con Panache
+- Hibernate Validator
+- MySQL 8
+- Flyway
+- Firebase Admin SDK
+- JUnit 5 / Rest Assured
+- Docker
+- Google Cloud Run
+- Google Cloud SQL
+- Google Artifact Registry
+- Google Secret Manager
+- Google Cloud Build
+
+## Arquitectura
+
+El backend sigue una separacion por responsabilidades dentro de una API REST Quarkus.
+
+```text
+Backend/
+|-- src/main/java/           # Codigo fuente Java
+|   |-- .../resource/        # Recursos REST / endpoints HTTP
+|   |-- .../service/         # Casos de uso y logica de negocio
+|   |-- .../model/           # Entidades y modelos de dominio
+|   |-- .../repository/      # Acceso a datos con Panache
+|   |-- .../dto/             # Request/response DTOs
+|   |-- .../security/        # Validacion de Firebase ID Tokens
+|-- src/main/resources/
+|   |-- application.properties
+|   |-- db/migration/        # Migraciones Flyway
+|-- src/test/                # Tests automatizados
+|-- Dockerfile               # Imagen JVM runtime-only
+|-- cloudbuild.yaml          # Build, push y deploy a Cloud Run
+|-- docs/deploy/             # Guia de despliegue
+```
+
+Flujo principal:
+
+1. El frontend obtiene un Firebase ID Token.
+2. El token llega en `Authorization: Bearer <token>`.
+3. El backend valida el token con Firebase Admin SDK.
+4. La API resuelve el usuario autenticado.
+5. Las consultas de listas y tareas se filtran por ese usuario.
+6. Los cambios se guardan en MySQL.
+
+## Instalacion
+
+Requisitos:
 
 - Java 21.
 - MySQL 8.
-- Maven Wrapper incluido.
-- Proyecto Firebase.
-- Service account JSON de Firebase Admin SDK.
+- Proyecto Firebase con Authentication habilitado.
+- JSON de service account de Firebase Admin SDK.
 
-## Base de Datos
+Desde `Backend/`:
 
-Crear base vacia:
+```powershell
+.\mvnw.cmd -DskipTests package
+```
+
+En Linux/macOS:
+
+```bash
+./mvnw -DskipTests package
+```
+
+## Base De Datos Local
+
+Crea una base vacia en MySQL:
 
 ```sql
 CREATE DATABASE checkly CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -42,30 +90,22 @@ src/main/resources/db/migration/
 |-- V2__add_user_preferred_language.sql
 ```
 
-Tablas actuales:
+Tablas principales:
 
 - `users`
 - `task_lists`
 - `todos`
 - `flyway_schema_history`
 
-Relaciones:
+## Variables De Entorno
 
-- `users -> task_lists`
-- `users -> todos`
-- `task_lists -> todos`
+Copia el archivo de ejemplo:
 
-`due_date` guarda fecha y hora de vencimiento en un solo `DATETIME(6)`.
-
-## Variables de Entorno
-
-Copia el ejemplo:
-
-```bash
+```powershell
 copy .env.example .env
 ```
 
-Variables:
+Variables necesarias:
 
 ```env
 DB_KIND=mysql
@@ -75,74 +115,127 @@ DB_JDBC_URL=jdbc:mysql://localhost:3306/checkly
 DB_SCHEMA_STRATEGY=validate
 DB_MIGRATE_AT_START=true
 DB_BASELINE_ON_MIGRATE=true
+CORS_ORIGINS=*
 FIREBASE_SERVICE_ACCOUNT_LOCATION=C:/secure-path/firebase-service-account.json
 APP_VERSION=dev
 PORT=8080
 ```
 
-Opcional para CORS:
+Descripcion:
 
-```env
-CORS_ORIGINS=*
+| Variable | Uso |
+| --- | --- |
+| `DB_KIND` | Tipo de base de datos. Para Checkly: `mysql`. |
+| `DB_USERNAME` | Usuario de MySQL. |
+| `DB_PASSWORD` | Password del usuario de MySQL. |
+| `DB_JDBC_URL` | URL JDBC de conexion. |
+| `DB_SCHEMA_STRATEGY` | Validacion de esquema de Hibernate. |
+| `DB_MIGRATE_AT_START` | Ejecuta migraciones Flyway al iniciar. |
+| `DB_BASELINE_ON_MIGRATE` | Permite baseline de Flyway cuando aplica. |
+| `CORS_ORIGINS` | Origenes permitidos por CORS. |
+| `FIREBASE_SERVICE_ACCOUNT_LOCATION` | Ruta del JSON de Firebase Admin SDK. |
+| `APP_VERSION` | Version informativa del servicio. |
+| `PORT` | Puerto HTTP. |
+
+No subas `.env`, passwords ni archivos JSON de service account.
+
+## Ejecutar El Proyecto
+
+Modo desarrollo en Windows:
+
+```powershell
+.\mvnw.cmd quarkus:dev
 ```
 
-No subas `.env`, carpetas `secrets/` ni archivos JSON de service account.
-
-## Ejecutar en Desarrollo
-
-Windows:
-
-```bash
-mvnw.cmd quarkus:dev
-```
-
-Linux/macOS:
+Modo desarrollo en Linux/macOS:
 
 ```bash
 ./mvnw quarkus:dev
 ```
 
-La API escucha en:
+La API local queda disponible en:
 
 ```text
 http://localhost:8080
 ```
 
-Status:
+Validar health check:
 
-```bash
-curl http://localhost:8080/status
+```powershell
+curl.exe http://localhost:8080/status
 ```
 
-## Build y Tests
+## Tests Y Build
 
-Tests:
+Ejecutar tests:
 
-```bash
-mvnw.cmd test
+```powershell
+.\mvnw.cmd test
 ```
 
-Build JVM:
+Generar build JVM:
 
-```bash
-mvnw.cmd package -DskipTests
+```powershell
+.\mvnw.cmd -DskipTests package
 ```
 
-Ejecutar jar:
+Ejecutar JAR:
 
-```bash
-java -jar target/quarkus-app/quarkus-run.jar
+```powershell
+java -jar target\quarkus-app\quarkus-run.jar
 ```
+
+## Links Desplegados
+
+URL publica oficial del backend:
+
+- API base: [https://checkly-api-631651477281.us-central1.run.app](https://checkly-api-631651477281.us-central1.run.app)
+- Health check: [https://checkly-api-631651477281.us-central1.run.app/status](https://checkly-api-631651477281.us-central1.run.app/status)
+
+Esta es la URL que debe usar el frontend:
+
+```env
+EXPO_PUBLIC_API_URL=https://checkly-api-631651477281.us-central1.run.app
+```
+
+## Usuarios De Prueba
+
+Usuario disponible para evaluacion:
+
+- Correo: `alex@dev.mx`
+- Contrasenia: `Password123`
 
 ## Despliegue En Google Cloud
 
-La guia paso a paso para Cloud Run, Cloud SQL, Secret Manager y Artifact Registry esta en:
+El backend esta preparado para desplegarse con:
+
+- Cloud Run para ejecutar la API.
+- Cloud SQL MySQL para persistencia.
+- Artifact Registry para almacenar la imagen Docker.
+- Secret Manager para `DB_PASSWORD` y Firebase service account.
+- Cloud Build para construir, subir y desplegar la imagen.
+
+Archivo de pipeline:
+
+```text
+cloudbuild.yaml
+```
+
+Comando de redeploy desde `Backend/`:
+
+```powershell
+gcloud builds submit . `
+  --config cloudbuild.yaml `
+  --substitutions _REGION=us-central1,_REPOSITORY=checkly,_IMAGE=backend,_SERVICE=checkly-api
+```
+
+La guia manual completa esta en:
 
 ```text
 docs/deploy/google-cloud-run.md
 ```
 
-## Endpoints
+## Endpoints Principales
 
 Todos excepto `/status` requieren:
 
@@ -152,122 +245,35 @@ Authorization: Bearer <firebase-id-token>
 
 | Metodo | Endpoint | Descripcion |
 | --- | --- | --- |
-| `GET` | `/status` | Estado de API |
-| `POST` | `/user` | Crea/sincroniza perfil backend |
-| `GET` | `/me` | Perfil autenticado |
-| `PUT` | `/me` | Actualiza perfil: `fullName`, `email`, `preferredLanguage` |
-| `GET` | `/task-lists` | Lista task lists del usuario |
-| `POST` | `/task-lists` | Crea task list |
-| `GET` | `/task-lists/{id}` | Obtiene task list |
-| `PUT` | `/task-lists/{id}` | Actualiza task list |
-| `DELETE` | `/task-lists/{id}` | Elimina task list y tareas |
-| `GET` | `/task-lists/{id}/tasks` | Lista tareas de una task list |
-| `POST` | `/task-lists/{id}/tasks` | Crea tarea |
-| `GET` | `/tasks/{id}` | Obtiene tarea |
-| `PUT` | `/tasks/{id}` | Actualiza tarea |
-| `DELETE` | `/tasks/{id}` | Elimina tarea |
-| `GET` | `/search?q=...` | Busca listas y tareas del usuario |
-
-Existe tambien un recurso legacy `/todo` usado por pruebas antiguas; la app actual no depende de el.
-
-## Payloads Principales
-
-### `POST /user`
-
-```json
-{
-  "fullName": "Alex Gonzalez",
-  "email": "alex@example.com"
-}
-```
-
-El `firebaseUuid` se toma del token, no del body.
-
-### `PUT /me`
-
-```json
-{
-  "fullName": "Alex Gonzalez",
-  "email": "alex@example.com",
-  "preferredLanguage": "es"
-}
-```
-
-### `POST /task-lists`
-
-```json
-{
-  "title": "Work",
-  "description": "Tasks and priorities",
-  "accentColor": "#0B72E7",
-  "icon": "book"
-}
-```
-
-### `POST /task-lists/{id}/tasks`
-
-```json
-{
-  "title": "Prepare report",
-  "description": "Send first draft",
-  "priority": "medium",
-  "dueDate": "2026-05-31T18:30:00.000Z",
-  "completed": false
-}
-```
-
-## Errores
-
-El backend responde errores con `message` para que el frontend muestre mensajes amigables. Casos esperados:
-
-- `401`: sesion expirada o token invalido.
-- `403`: accion no permitida.
-- `404`: recurso no encontrado o no pertenece al usuario.
-- `400`: validacion invalida.
-- `500`: error inesperado.
+| `GET` | `/status` | Health check publico. |
+| `POST` | `/user` | Crea o sincroniza perfil backend. |
+| `GET` | `/me` | Obtiene perfil autenticado. |
+| `PUT` | `/me` | Actualiza perfil. |
+| `GET` | `/task-lists` | Lista las listas del usuario. |
+| `POST` | `/task-lists` | Crea una lista. |
+| `GET` | `/task-lists/{id}` | Obtiene una lista. |
+| `PUT` | `/task-lists/{id}` | Actualiza una lista. |
+| `DELETE` | `/task-lists/{id}` | Elimina una lista y sus tareas. |
+| `GET` | `/task-lists/{id}/tasks` | Lista tareas de una lista. |
+| `POST` | `/task-lists/{id}/tasks` | Crea una tarea. |
+| `GET` | `/tasks/{id}` | Obtiene una tarea. |
+| `PUT` | `/tasks/{id}` | Actualiza una tarea. |
+| `DELETE` | `/tasks/{id}` | Elimina una tarea. |
+| `GET` | `/search?q=...` | Busca listas y tareas del usuario. |
 
 ## Seguridad
 
 - El backend no almacena passwords.
-- Firebase Authentication gestiona credenciales.
-- El backend verifica tokens con Firebase Admin SDK.
-- Cada query de listas/tareas se limita al usuario autenticado.
-- Las task lists eliminan sus tareas por cascade.
-
-## Deploy en Render
-
-El archivo `render.yaml` contiene una configuracion base:
-
-```yaml
-buildCommand: ./mvnw -DskipTests package
-startCommand: java -jar target/quarkus-app/quarkus-run.jar
-```
-
-Variables recomendadas:
-
-- `DB_KIND=mysql`
-- `DB_USERNAME`
-- `DB_PASSWORD`
-- `DB_JDBC_URL`
-- `DB_SCHEMA_STRATEGY=validate`
-- `DB_MIGRATE_AT_START=true`
-- `DB_BASELINE_ON_MIGRATE=true`
-- `FIREBASE_SERVICE_ACCOUNT_LOCATION`
-- `CORS_ORIGINS`
-- `APP_VERSION=render`
-- `PORT`
-
-Para Firebase Admin SDK en produccion, monta el JSON como secret/archivo y apunta `FIREBASE_SERVICE_ACCOUNT_LOCATION` a esa ruta.
-
-## Notas de Migraciones
-
-- No edites migraciones ya aplicadas en bases compartidas o de produccion.
-- En desarrollo local, si decides borrar la base, Flyway volvera a aplicar desde `V1`.
-- Para cambios nuevos de esquema, agrega una nueva migracion `V{n}__descripcion.sql`.
+- Firebase Authentication administra credenciales.
+- Firebase Admin SDK verifica los ID Tokens.
+- Cada recurso se filtra por usuario autenticado.
+- Las listas y tareas no se exponen entre usuarios.
+- Los secretos de produccion se manejan con Secret Manager.
 
 ## Troubleshooting
 
-- Si MySQL no esta en PATH, puedes usar Workbench, DBeaver o la ruta completa a `mysql.exe`; Quarkus no necesita que el cliente `mysql` este en PATH.
-- Si Flyway dice `Schema is up to date`, las migraciones ya fueron aplicadas.
-- Si Firebase no inicializa, revisa `FIREBASE_SERVICE_ACCOUNT_LOCATION`.
-- Si Expo Go no conecta, revisa CORS y que el frontend apunte a la IP LAN correcta.
+- Si `/status` responde pero los endpoints protegidos devuelven `401`, revisa que el frontend envie el Firebase ID Token.
+- Si Firebase no inicializa, valida `FIREBASE_SERVICE_ACCOUNT_LOCATION`.
+- Si Flyway falla, revisa que la base exista y que el usuario tenga permisos.
+- Si Cloud Run no conecta con Cloud SQL, valida el permiso `roles/cloudsql.client`.
+- Si el frontend no conecta, revisa `EXPO_PUBLIC_API_URL` y CORS.
