@@ -21,64 +21,28 @@ Este repositorio contiene el backend de Checkly. La API valida Firebase ID Token
 - Google Secret Manager
 - Google Cloud Build
 
-## Arquitectura
+## Instalacion Y Configuracion
 
-El backend sigue una separacion por responsabilidades dentro de una API REST Quarkus.
+Sigue estos pasos en orden para ejecutar el backend localmente.
 
-```text
-Backend/
-|-- src/main/java/           # Recursos REST, servicios, modelos, repositorios y seguridad
-|-- src/main/resources/      # application.properties y migraciones Flyway
-|-- src/test/                # Tests automatizados
-|-- Dockerfile               # Imagen JVM runtime-only
-|-- cloudbuild.yaml          # Build, push y deploy a Cloud Run
-|-- docs/deploy/             # Guia de despliegue
-```
-
-Flujo principal:
-
-1. El frontend obtiene un Firebase ID Token.
-2. El token llega en `Authorization: Bearer <token>`.
-3. El backend valida el token con Firebase Admin SDK.
-4. La API resuelve el usuario autenticado.
-5. Las consultas de listas y tareas se filtran por ese usuario.
-6. Los cambios se guardan en MySQL.
-
-## Instalacion
-
-Requisitos:
+### 1. Requisitos
 
 - Java 21.
 - MySQL 8.
 - Proyecto Firebase con Authentication habilitado.
 - JSON de service account de Firebase Admin SDK.
 
-Desde `Backend/`:
+### 2. Crear base de datos local
 
-```powershell
-.\mvnw.cmd -DskipTests package
+Crea una base vacia en MySQL llamada `checkly`. Flyway ejecutara las migraciones al iniciar la aplicacion.
+
+```sql
+CREATE DATABASE checkly CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-## Base De Datos Local
+### 3. Crear `.env`
 
-Crea una base vacia en MySQL llamada `checkly`. Flyway ejecuta las migraciones al iniciar la aplicacion.
-
-Migraciones:
-
-```text
-src/main/resources/db/migration/
-```
-
-Tablas principales:
-
-- `users`
-- `task_lists`
-- `todos`
-- `flyway_schema_history`
-
-## Variables De Entorno
-
-Copia `.env.example` como `.env` y completa los valores:
+Crea `Backend/.env` copiando este contenido y ajustando `DB_PASSWORD` y `FIREBASE_SERVICE_ACCOUNT_LOCATION` a tu maquina.
 
 ```env
 DB_KIND=mysql
@@ -94,9 +58,17 @@ APP_VERSION=dev
 PORT=8080
 ```
 
-No subas `.env`, passwords ni archivos JSON de service account.
+El archivo Firebase service account no se incluye en el repositorio porque contiene credenciales privadas. Debe descargarse desde Firebase Console y guardarse fuera de git. La variable `FIREBASE_SERVICE_ACCOUNT_LOCATION` debe apuntar a ese archivo.
 
-## Ejecutar El Proyecto
+### 4. Instalar dependencias y compilar
+
+Desde `Backend/`:
+
+```powershell
+.\mvnw.cmd -DskipTests package
+```
+
+### 5. Ejecutar el backend
 
 Desde `Backend/`:
 
@@ -106,18 +78,10 @@ Desde `Backend/`:
 
 La API local queda disponible en `http://localhost:8080`.
 
-## Tests Y Build
-
-Ejecutar tests:
+### 6. Ejecutar tests
 
 ```powershell
 .\mvnw.cmd test
-```
-
-Generar build JVM:
-
-```powershell
-.\mvnw.cmd -DskipTests package
 ```
 
 ## Links Desplegados
@@ -133,6 +97,34 @@ Usuario disponible para evaluacion:
 
 - Correo: `alex@dev.mx`
 - Contrasenia: `Password123`
+
+## Arquitectura
+
+El backend utiliza una arquitectura limpia/hexagonal ligera. La regla principal es separar la logica de negocio de los detalles externos como REST, Firebase, MySQL y Quarkus. No es una implementacion purista de Clean Architecture, porque se apoya en Quarkus y Panache para simplificar persistencia, pero si mantiene las responsabilidades principales separadas por capas.
+
+```text
+Backend/
+|-- src/main/java/com/itesm/
+|   |-- domain/              # Modelos de dominio y contratos de repositorio
+|   |-- application/         # DTOs, seguridad de aplicacion y casos de uso
+|   |-- infrastructure/      # Firebase, persistencia, mappers y adaptadores tecnicos
+|   |-- interfaces/          # Controladores REST
+|-- src/main/resources/      # application.properties y migraciones Flyway
+|-- src/test/                # Tests automatizados
+|-- Dockerfile               # Imagen JVM runtime-only
+|-- cloudbuild.yaml          # Build, push y deploy a Cloud Run
+|-- docs/deploy/             # Guia de despliegue
+```
+
+Patrones y decisiones usadas:
+
+- Clean/Hexagonal Architecture ligera: `domain` no depende de REST ni de Firebase.
+- Use Case Pattern: la logica de aplicacion vive en `application/usecase`.
+- Repository Pattern: `domain/repository` define contratos y `infrastructure/persistence/repository` los implementa.
+- DTO Pattern: los objetos de entrada/salida HTTP viven en `application/dto`.
+- Mapper Pattern: `infrastructure/mapper` traduce entre entidades de persistencia, dominio y respuestas.
+- Adapter Pattern: Firebase y MySQL quedan encapsulados en `infrastructure`.
+- Controller/Resource Pattern: `interfaces/rest` expone la API HTTP.
 
 ## Despliegue En Google Cloud
 
